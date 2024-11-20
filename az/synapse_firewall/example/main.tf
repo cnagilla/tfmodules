@@ -1,0 +1,46 @@
+resource "random_string" "this" {
+  length  = var.random_string_length
+  special = false
+  upper   = false
+}
+
+resource "azurerm_resource_group" "this" {
+  name     = "rg-${var.name}-${random_string.this.result}"
+  location = var.location
+  tags     = var.tags
+}
+
+resource "azurerm_storage_account" "this" {
+  name                     = "sta${var.name}${random_string.this.result}"
+  location                 = azurerm_resource_group.this.location
+  resource_group_name      = azurerm_resource_group.this.name
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  account_kind             = "StorageV2"
+  is_hns_enabled           = "true"
+}
+
+resource "azurerm_storage_data_lake_gen2_filesystem" "this" {
+  name               = "stafs-${var.name}-${random_string.this.result}"
+  storage_account_id = azurerm_storage_account.this.id
+}
+
+resource "azurerm_synapse_workspace" "this" {
+  name                                 = "synws-${var.name}-${random_string.this.result}"
+  location                             = azurerm_resource_group.this.location
+  resource_group_name                  = azurerm_resource_group.this.name
+  storage_data_lake_gen2_filesystem_id = azurerm_storage_data_lake_gen2_filesystem.this.id
+  sql_administrator_login              = "sqladminuser"
+  sql_administrator_login_password     = random_string.this.result
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+module "synapse_firewall" {
+  source = "../../synapse_firewall"
+
+  synapse_workspace_id = azurerm_synapse_workspace.this.id
+  rules                = local.rules
+}

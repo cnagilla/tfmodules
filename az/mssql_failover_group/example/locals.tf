@@ -1,0 +1,5 @@
+locals {
+  databases = {
+    "test" : {}
+  }
+}

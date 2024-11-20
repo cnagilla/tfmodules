@@ -1,0 +1,14 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+write_files:
+  - encoding: b64
+    content: ${K8S_CONFIG}
+    owner: ${ADMIN_USER}:${ADMIN_USER}
+    path: /home/${ADMIN_USER}/kubeconfig
+    defer: true
+    permissions: '0644'
+runcmd:
+  - curl -L https://dl.k8s.io/release/v${K8S_VERSION}/bin/linux/amd64/kubectl -o /usr/bin/kubectl
+  - chmod +x /usr/bin/kubectl
+  - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
